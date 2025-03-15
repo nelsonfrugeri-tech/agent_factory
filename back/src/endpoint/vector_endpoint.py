@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4
 from typing import List, Dict, Any
 from src.business.vector_business import VectorBusiness
 from src.port.port import vector_business
@@ -9,8 +9,8 @@ class CreateKnowledgeBaseRequest(BaseModel):
     name: str
 
 
-class AddFilesRequest(BaseModel):
-    file_ids: List[str]
+class ProjectRequest(BaseModel):
+    id: str
 
 
 vector_router = APIRouter()
@@ -34,19 +34,19 @@ async def create_knowledge_base(
 
 
 @vector_router.post(
-    "/v1/vectors/{vector_id}/files",
+    "/v1/vectors/{vector_id}/project",
     response_model=List[str],
     status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_400_BAD_REQUEST: {"description": "Bad Request"}},
 )
 async def add_files(
-    vector_id: str, 
-    request: AddFilesRequest,
-    vector_business: VectorBusiness = Depends(vector_business),    
-) -> List[str]:
+    vector_id: str,
+    request: ProjectRequest,
+    vector_business: VectorBusiness = Depends(vector_business),
+) -> str:
     try:
-        await vector_business.add_files(vector_id, request.file_ids)
-        return request.file_ids
+        await vector_business.add_project(vector_id, request.id)
+        return request.id
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -57,9 +57,12 @@ async def add_files(
     status_code=status.HTTP_200_OK,
     responses={status.HTTP_404_NOT_FOUND: {"description": "Not Found"}},
 )
-async def get_vector_files(vector_id: str) -> Dict[str, Any]:
+async def get_vector_files(
+    vector_id: str,
+    vector_business: VectorBusiness = Depends(vector_business),
+) -> Dict[str, Any]:
     try:
-        result = vector.get_vector_files(vector_id)
+        result = vector_business.get_vector_files(vector_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))

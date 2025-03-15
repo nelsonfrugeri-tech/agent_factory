@@ -1,15 +1,16 @@
 from openai import OpenAI
+from pydantic import UUID4
 from typing import List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from src.database.mongo_db_client import MongoDBClient
 from src.domain.vector import Vector
-from src.domain.file import File
+from src.domain.file import Project, File
 
 
 class VectorBusiness:
     def __init__(self, mongo_db: AsyncIOMotorDatabase):
         self.VECTOR_STORE_COLLECTION = "vector_store"
-        self.FILE_COLLECTION = "files"
+        self.PROJECT_COLLECTION = "projects"
 
         self.openai = OpenAI()
         self.client_mongo_db = MongoDBClient(mongo_db=mongo_db)
@@ -28,35 +29,34 @@ class VectorBusiness:
 
         return vector_store_id
 
-    async def add_files(self, vector_store_id: str, file_ids: List[str]) -> None:
+    async def add_project(self, vector_store_id: str, project_id: str) -> None:
         try:
             vector_store_dict = await self.client_mongo_db.get_document(
-                collection_name=self.VECTOR_STORE_COLLECTION, query={"id": vector_store_id}
+                collection_name=self.VECTOR_STORE_COLLECTION,
+                query={"id": vector_store_id},
             )
 
             if not vector_store_dict:
                 raise ValueError(f"Vector store with id {vector_store_id} not found")
 
-            vector_store = Vector(**vector_store_dict)
+            project = await self.client_mongo_db.get_document(
+                collection_name=self.PROJECT_COLLECTION, query={"id": project_id}
+            )
 
-            if vector_store.files is None:
-                vector_store.files = []
-
-            for file_id in file_ids:
-                file_dict = await self.client_mongo_db.get_document(
-                    collection_name=self.FILE_COLLECTION, query={"id": file_id}
+            for file in project["files"]:
+                self.openai.vector_stores.files.create(
+                    vector_store_id=vector_store_id,
+                    file_id=file["id"],
                 )
 
-                if not file_dict:
-                    raise ValueError(f"File with id {file_id} not found")
-
-                file = File(**file_dict)
-                vector_store.files.append(file)
+                print(
+                    f'File {file["id"]} added to OpenAI vector store {vector_store_id}'
+                )
 
             await self.client_mongo_db.update_document(
                 collection_name=self.VECTOR_STORE_COLLECTION,
                 query={"id": vector_store_id},
-                update={"files": [file.model_dump() for file in vector_store.files]},
+                update={"project": project},
             )
         except Exception as e:
             print(f"ERROR: {str(e)}")

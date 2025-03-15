@@ -3,7 +3,7 @@ from openai import OpenAI
 from io import BytesIO
 from typing import List
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from src.domain.file import File
+from src.domain.file import Project, File
 from src.database.mongo_db_client import MongoDBClient
 
 
@@ -37,16 +37,18 @@ class FileBusiness:
         print(result.id)
         return result.id
 
-    async def create_file(self, zip_content: BytesIO) -> List[str]:
+    async def create_project(self, zip_content: BytesIO, project_name: str) -> Project:
         try:
             zip_content.seek(0)
-            file_ids = []
+            files: List[File] = []
 
             zip_size_mb = len(zip_content.getvalue()) / (1024 * 1024)
             if zip_size_mb > self.MAX_FILE_SIZE_MB:
                 raise ValueError(
                     f"ZIP file exceeds the maximum size of {self.MAX_FILE_SIZE_MB}MB"
                 )
+
+            project = Project(name=project_name)
 
             with zipfile.ZipFile(zip_content) as zip_file:
                 for file_name in zip_file.namelist():
@@ -64,15 +66,15 @@ class FileBusiness:
                             print(f"Skipping large file: {file_name}")
                             continue
 
-                        # file_id = self._call_openai(file_content, file_name)
-                        file_id = f"FILE_ID_{file_name}"
-                        file_ids.append(file_id)
+                        file_id = self._call_openai(file_content, file_name)
+                        file = File(id=file_id, name=file_name)
+                        files.append(file)
 
-                        await self.client_mongo_db.create_document(
-                            "files", File(id=file_id, name=file_name).model_dump()
-                        )
+                        project.files.append(file)
 
-            return file_ids
+            await self.client_mongo_db.create_document("projects", project.model_dump())
+
+            return project
         except Exception as e:
-            print(f"Error while creating file: {e}")
+            print(f"Error while creating project: {e}")
             raise e

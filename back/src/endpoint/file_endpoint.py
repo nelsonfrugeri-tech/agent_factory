@@ -1,22 +1,36 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
-from typing import List
 from io import BytesIO
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends, Form
+from pydantic import BaseModel
+from typing import List, Dict, Any
 from src.business.file_business import FileBusiness
 from src.port.port import file_business
 
 file_router = APIRouter()
 
 
+class CreateFileRequest(BaseModel):
+    project_name: str
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    files: List[str]
+
+
 @file_router.post(
     "/v1/files",
-    response_model=List[str],
+    response_model=ProjectResponse,
     status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_400_BAD_REQUEST: {"description": "Bad Request"}},
 )
 async def create_file(
-    file: UploadFile = File(...), file_business: FileBusiness = Depends(file_business)
-) -> List[str]:
+    project_name: str = Form(...),
+    file: UploadFile = File(...),
+    file_business: FileBusiness = Depends(file_business),
+) -> ProjectResponse:
     print(f"📂 Received file: {file.filename}")
+    print(f"📂 Project name: {project_name}")
 
     # ⚡ Lê o arquivo ANTES de validar o Content-Type
     zip_content = BytesIO(await file.read())
@@ -28,7 +42,9 @@ async def create_file(
     print(f"📏 File size: {file_size} bytes")
 
     try:
-        file_ids = await file_business.create_file(zip_content)
-        return file_ids
+        project = await file_business.create_project(zip_content, project_name)
+        return ProjectResponse(
+            id=project.id, name=project.name, files=[file.id for file in project.files]
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

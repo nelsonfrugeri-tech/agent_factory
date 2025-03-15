@@ -1,11 +1,11 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from src.domain.file import File
+from typing import Optional
+from src.domain.file import Project
 
 
 class Vector(BaseModel):
     id: str
     name: str
-    files: Optional[List[File]] = None
+    project: Optional[Project] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now())
