@@ -1,18 +1,21 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from typing import List
 from io import BytesIO
 from src.business.file_business import FileBusiness
+from src.port.port import file_business
 
 file_router = APIRouter()
-file_business = FileBusiness()
+
 
 @file_router.post(
     "/v1/files",
     response_model=List[str],
     status_code=status.HTTP_201_CREATED,
-    responses={status.HTTP_400_BAD_REQUEST: {"description": "Bad Request"}}
+    responses={status.HTTP_400_BAD_REQUEST: {"description": "Bad Request"}},
 )
-async def create_file(file: UploadFile = File(...)) -> List[str]:
+async def create_file(
+    file: UploadFile = File(...), file_business: FileBusiness = Depends(file_business)
+) -> List[str]:
     print(f"📂 Received file: {file.filename}")
 
     # ⚡ Lê o arquivo ANTES de validar o Content-Type
@@ -25,7 +28,7 @@ async def create_file(file: UploadFile = File(...)) -> List[str]:
     print(f"📏 File size: {file_size} bytes")
 
     try:
-        file_ids = file_business.create_file(zip_content)
+        file_ids = await file_business.create_file(zip_content)
         return file_ids
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,8 +1,11 @@
 import openai
 
+
 def main():
     client = openai.OpenAI()
-    vector_store_id = "vs_67d4741dbbe48191a008b78dd607d510"  # Substitua pelo seu vector_store_id
+    vector_store_id = (
+        "vs_67d4741dbbe48191a008b78dd607d510"  # Substitua pelo seu vector_store_id
+    )
 
     print("Chatbot iniciado. Digite 'exit' para sair.")
     while True:
@@ -14,12 +17,10 @@ def main():
         response = client.responses.create(
             model="gpt-4o-mini",
             input=user_input,
-            tools=[{
-                "type": "file_search",
-                "vector_store_ids": [vector_store_id]
-            }]
+            tools=[{"type": "file_search", "vector_store_ids": [vector_store_id]}],
         )
         print("Chatbot:", response)
+
 
 if __name__ == "__main__":
     main()

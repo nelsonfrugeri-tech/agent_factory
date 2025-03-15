@@ -4,4 +4,4 @@ pydantic
 python-dotenv
 openai-agents
 python-multipart
-httpie
+motor
