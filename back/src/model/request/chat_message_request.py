@@ -13,5 +13,5 @@ class ToolRequest(BaseModel):
 
 
 class ChatMessageRequest(BaseModel):
-    messages: List[MessageRequest]
+    message: MessageRequest
     tools: List[ToolRequest]

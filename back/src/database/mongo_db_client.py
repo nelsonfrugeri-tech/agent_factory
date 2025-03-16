@@ -19,7 +19,7 @@ class MongoDBClient:
         self, collection_name: str, query: Dict[str, Any], update: Dict[str, Any]
     ) -> int:
         collection = self.mongo_db[collection_name]
-        result = await collection.update_one(query, {"$set": update})
+        result = await collection.update_one(query, update)
         return result.modified_count
 
     async def get_document(

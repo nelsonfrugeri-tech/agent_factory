@@ -21,18 +21,35 @@ class ChatBusiness:
         return chat
 
     async def message(
-        self, uuid: str, messages: List[MessageRequest], tools: List[ToolRequest]
+        self, uuid: str, message: MessageRequest, tools: List[ToolRequest]
     ) -> str:
-        # Formatando ferramentas para o OpenAI
-        tools_formatted = [
-            {"type": tool.type, "vector_store_ids": tool.index} for tool in tools
+        
+        chat_document = await self.client_mongo_db.get_document(
+            collection_name=self.CHAT_COLLECTION,
+            query={"id": uuid},
+        )
+
+        chat = Chat(**chat_document)
+
+        # Adicionando a nova mensagem como uma nova Question
+        new_question = Question(
+            message=Message(role=message.role, content=message.content),
+            tools=[Tool(type=tool.type, index=tool.index) for tool in tools]
+        )
+        chat.conversations.append(Conversation(question=new_question, answer=None))
+
+        # Preparando o input para a OpenAI
+        input_messages = [
+            {"role": conv.question.message.role, "content": conv.question.message.content}
+            for conv in chat.conversations[-10:]
         ]
+        input_messages.append({"role": message.role, "content": message.content})
 
         # Chamando a API da OpenAI
         response = self.openai_client.responses.create(
             model="gpt-4o-mini",
-            input=messages[-1].content,
-            tools=tools_formatted,
+            input=input_messages,
+            tools=[{"type": tool.type, "vector_store_ids": tool.index} for tool in tools],
         )
 
         # Criando a resposta com o formato correto
@@ -40,22 +57,14 @@ class ChatBusiness:
             role="assistant", content=response.output[1].content[0].text
         )
 
-        # Construindo o objeto Conversation
-        conversation = Conversation(
-            question=Question(
-                messages=[
-                    Message(role=msg.role, content=msg.content) for msg in messages
-                ],
-                tools=[Tool(type=tool.type, index=tool.index) for tool in tools],
-            ),
-            answer=Answer(message=response_message),
-        )
+        # Atualizando a última conversa com a resposta
+        chat.conversations[-1].answer = Answer(message=response_message)
 
         # Atualizando o documento no MongoDB
         await self.client_mongo_db.update_document(
             collection_name=self.CHAT_COLLECTION,
             query={"id": uuid},
-            update={"conversation": conversation.model_dump()}
+            update={"$push": {"conversations": chat.conversations[-1].model_dump()}},
         )
 
         return response_message.content

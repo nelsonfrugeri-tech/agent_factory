@@ -48,7 +48,7 @@ async def send_message(
     chat_business: ChatBusiness = Depends(chat_business),
 ) -> MessageResponse:
     try:
-        response = await chat_business.message(uuid, request.messages, request.tools)
+        response = await chat_business.message(uuid, request.message, request.tools)
         return MessageResponse(response=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -15,7 +15,7 @@ class Message(BaseModel):
 
 
 class Question(BaseModel):
-    messages: List[Message]
+    message: Message
     tools: List[Tool]
 
 
@@ -25,12 +25,12 @@ class Answer(BaseModel):
 
 class Conversation(BaseModel):
     question: Question
-    answer: Answer
+    answer: Optional[Answer] = None
 
 
 class Chat(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
-    conversation: Optional[Conversation] = None
+    conversations: List[Conversation] = Field(default_factory=list)
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now())
