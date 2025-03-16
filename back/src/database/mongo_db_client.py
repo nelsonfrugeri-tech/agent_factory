@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
@@ -28,3 +28,8 @@ class MongoDBClient:
         collection = self.mongo_db[collection_name]
         document = await collection.find_one(query)
         return document
+
+    async def get_all_documents(self, collection_name: str) -> List[Dict[str, Any]]:
+        collection = self.mongo_db[collection_name]
+        documents = await collection.find().to_list(length=None)
+        return documents

@@ -5,6 +5,7 @@ from src.business.chat_business import ChatBusiness
 from src.port.port import chat_business
 from src.model.request.chat_message_request import ChatMessageRequest
 from src.model.response.chat_message_response import MessageResponse
+from src.domain.chat import Chat
 
 
 class CreateChatRequest(BaseModel):
@@ -52,3 +53,19 @@ async def send_message(
         return MessageResponse(response=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@chat_router.get(
+    "/v1/chats",
+    response_model=List[Chat],
+    status_code=status.HTTP_200_OK,
+    responses={status.HTTP_404_NOT_FOUND: {"description": "Not Found"}},
+)
+async def get_all_chats(
+    chat_business: ChatBusiness = Depends(chat_business),
+) -> List[Chat]:
+    try:
+        chats = await chat_business.get_all_chats()
+        return chats
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
