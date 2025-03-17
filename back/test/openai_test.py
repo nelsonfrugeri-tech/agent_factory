@@ -3,9 +3,7 @@ import openai
 
 def main():
     client = openai.OpenAI()
-    vector_store_id = (
-        ""  # Substitua pelo seu vector_store_id
-    )
+    vector_store_id = ""  # Substitua pelo seu vector_store_id
 
     print("Chatbot iniciado. Digite 'exit' para sair.")
     while True:

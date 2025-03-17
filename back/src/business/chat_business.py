@@ -12,8 +12,10 @@ class ChatBusiness:
         self.client_mongo_db = MongoDBClient(mongo_db=mongo_db)
         self.openai_client = openai.OpenAI()
 
-    async def create(self, name: str) -> Chat:
+    async def create(self, name: str, tools: List[ToolRequest]) -> Chat:
         chat = Chat(name=name)
+        chat.tools = [Tool(type=tool.type, index=tool.index) for tool in tools]
+
         await self.client_mongo_db.create_document(
             collection_name=self.CHAT_COLLECTION,
             document=chat.model_dump(),

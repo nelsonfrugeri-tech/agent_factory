@@ -3,13 +3,18 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 from src.business.chat_business import ChatBusiness
 from src.port.port import chat_business
-from src.model.request.chat_message_request import ChatMessageRequest
+from src.model.request.chat_message_request import ChatMessageRequest, ToolRequest
 from src.model.response.chat_message_response import MessageResponse
 from src.domain.chat import Chat
 
 
+class ConfigRequest(BaseModel):
+    tools: List[ToolRequest]
+
+
 class CreateChatRequest(BaseModel):
     name: str
+    config: ConfigRequest
 
 
 class ChatResponse(BaseModel):
@@ -31,7 +36,7 @@ async def create_chat(
     chat_business: ChatBusiness = Depends(chat_business),
 ) -> ChatResponse:
     try:
-        chat = await chat_business.create(request.name)
+        chat = await chat_business.create(request.name, request.config.tools)
         return ChatResponse(id=chat.id, name=chat.name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

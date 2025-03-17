@@ -3,7 +3,8 @@ from openai import OpenAI
 from io import BytesIO
 from typing import List
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from src.domain.file import Project, File
+from src.domain.file import File
+from src.domain.project import Project
 from src.database.mongo_db_client import MongoDBClient
 
 

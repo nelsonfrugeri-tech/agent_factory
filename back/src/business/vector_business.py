@@ -4,7 +4,6 @@ from typing import List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from src.database.mongo_db_client import MongoDBClient
 from src.domain.vector import Vector
-from src.domain.file import Project, File
 
 
 class VectorBusiness:
@@ -31,12 +30,12 @@ class VectorBusiness:
 
     async def add_project(self, vector_store_id: str, project_id: str) -> None:
         try:
-            vector_store_dict = await self.client_mongo_db.get_document(
+            vector_store = await self.client_mongo_db.get_document(
                 collection_name=self.VECTOR_STORE_COLLECTION,
                 query={"id": vector_store_id},
             )
 
-            if not vector_store_dict:
+            if not vector_store:
                 raise ValueError(f"Vector store with id {vector_store_id} not found")
 
             project = await self.client_mongo_db.get_document(
@@ -54,9 +53,9 @@ class VectorBusiness:
                 )
 
             await self.client_mongo_db.update_document(
-                collection_name=self.VECTOR_STORE_COLLECTION,
-                query={"id": vector_store_id},
-                update={"project": project},
+                collection_name=self.PROJECT_COLLECTION,
+                query={"id": project_id},
+                update={"$set": {"vector_store": vector_store}},
             )
         except Exception as e:
             print(f"ERROR: {str(e)}")

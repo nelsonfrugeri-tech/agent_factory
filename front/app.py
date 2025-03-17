@@ -1,23 +1,19 @@
 import streamlit as st
 import requests
-import json
 
 # Configuração da página
 st.set_page_config(page_title="Chat Interface", layout="wide")
 
 API_BASE_URL = "http://localhost:8080/coder-buddy/v1"
 
-
-# Inicializar session_state para controle do scroll
+# Inicializar session_state para controle do scroll e mensagens
 def initialize_session():
     if "messages" not in st.session_state:
         st.session_state["messages"] = []
     if "scroll_trigger" not in st.session_state:
         st.session_state["scroll_trigger"] = False
 
-
 initialize_session()
-
 
 # Função para obter todos os chats
 def get_all_chats():
@@ -29,38 +25,60 @@ def get_all_chats():
         st.error(f"Erro ao buscar chats: {e}")
         return []
 
+# Função para criar um novo chat
+def create_chat(chat_name, tools):
+    payload = {"name": chat_name, "config": {"tools": tools}}
+    try:
+        response = requests.post(f"{API_BASE_URL}/chat", json=payload)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Erro ao criar chat: {e}")
+        return None
 
 # Função para enviar uma mensagem
 def send_message(chat_id, message, tools):
-    payload = {
-        "message": {"role": "user", "content": message},
-        "tools": tools if tools else [],
-    }
+    payload = {"message": {"role": "user", "content": message}, "tools": tools if tools else []}
     try:
         response = requests.post(f"{API_BASE_URL}/chat/{chat_id}/message", json=payload)
         response.raise_for_status()
-        response_data = response.json()
-        return response_data.get("response", None)
+        return response.json().get("response", "Nenhuma resposta recebida.")
     except requests.exceptions.RequestException as e:
         st.error(f"Erro ao enviar mensagem: {e}")
         return None
 
-
-# Sidebar para exibir os chats
+# Sidebar para exibir e criar chats
 st.sidebar.title("Chats")
+
 chats = get_all_chats()
-if chats:
-    chat_ids = [chat["id"] for chat in chats]
-    chat_names = {chat["id"]: chat["name"] for chat in chats}
+chat_ids = [chat["id"] for chat in chats]
+chat_names = {chat["id"]: chat["name"] for chat in chats}
+
+selected_chat = None
+if chat_ids:
     selected_chat = st.sidebar.selectbox(
         "Selecione um chat",
         chat_ids,
         format_func=lambda x: chat_names.get(x, "Chat desconhecido"),
     )
-else:
-    selected_chat = None
 
-# Área principal para exibir o histórico do chat e enviar mensagens
+# Criar novo chat
+st.sidebar.subheader("Criar Novo Chat")
+new_chat_name = st.sidebar.text_input("Nome do chat", key="new_chat_name")
+tool_type = st.sidebar.text_input("Ferramenta (ex: file_search)", key="tool_type")
+tool_index = st.sidebar.text_input("Índice da ferramenta (separado por vírgula)", key="tool_index")
+
+if st.sidebar.button("Criar Chat"):
+    tools = []
+    if tool_type and tool_index:
+        tools.append({"type": tool_type, "index": tool_index.split(",")})
+
+    new_chat = create_chat(new_chat_name, tools)
+    if new_chat:
+        st.success("Chat criado com sucesso! Selecione na lista.")
+        st.rerun()
+
+# Área principal para exibir histórico do chat e enviar mensagens
 if selected_chat:
     st.title(f"Chat: {chat_names.get(selected_chat, 'Chat desconhecido')}")
 
@@ -73,45 +91,29 @@ if selected_chat:
         if chat_history and "conversations" in chat_history:
             st.session_state["messages"] = []  # Resetar histórico
             for conversation in chat_history["conversations"]:
-                st.session_state["messages"].append(
-                    f"**Usuário:** {conversation['question']['message']['content']}"
-                )
-                if conversation.get("answer"):
-                    st.session_state["messages"].append(
-                        f"**Assistente:** {conversation['answer']['message']['content']}"
-                    )
+                question = conversation.get("question", {})
+                answer = conversation.get("answer", {})
+
+                user_message = question.get("message", {}).get("content", "Mensagem não encontrada")
+                assistant_message = answer.get("message", {}).get("content", "Sem resposta")
+
+                st.session_state["messages"].append(f"**Usuário:** {user_message}")
+                if assistant_message != "Sem resposta":
+                    st.session_state["messages"].append(f"**Assistente:** {assistant_message}")
 
             for message in st.session_state["messages"]:
                 st.write(message)
 
-    # Acionar scroll automático na primeira renderização e após envio de mensagem
-    if not st.session_state["scroll_trigger"] or "new_message_sent" in st.session_state:
-        st.markdown(
-            """
-            <script>
-            function scrollToBottom() {
-                var chatBox = window.parent.document.querySelector("section.main");
-                if (chatBox) {
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-            }
-            setTimeout(scrollToBottom, 500);
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.session_state["scroll_trigger"] = True
-
     # Campo de entrada para enviar uma nova mensagem
-    new_message = st.text_area("Digite sua mensagem")
-    tool_type = st.text_input("Tipo de ferramenta (ex: file_search)")
-    tool_index = st.text_input("Índice da ferramenta (separado por vírgula)")
+    new_message = st.text_area("Digite sua mensagem", key="new_message")
+    tool_type_input = st.text_input("Tipo de ferramenta (ex: file_search)", key="tool_type_input")
+    tool_index_input = st.text_input("Índice da ferramenta (separado por vírgula)", key="tool_index_input")
 
     if st.button("Enviar"):
         if new_message.strip():
             tools = []
-            if tool_type and tool_index:
-                tools.append({"type": tool_type, "index": tool_index.split(",")})
+            if tool_type_input and tool_index_input:
+                tools.append({"type": tool_type_input, "index": tool_index_input.split(",")})
 
             response = send_message(selected_chat, new_message, tools)
             if response:

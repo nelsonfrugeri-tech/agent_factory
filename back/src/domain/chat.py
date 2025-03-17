@@ -28,9 +28,14 @@ class Conversation(BaseModel):
     answer: Optional[Answer] = None
 
 
+class Config(BaseModel):
+    tools: List[Tool]
+
+
 class Chat(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
+    config: Optional[Config] = None
     conversations: List[Conversation] = Field(default_factory=list)
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now())
