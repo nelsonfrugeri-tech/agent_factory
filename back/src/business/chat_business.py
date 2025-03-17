@@ -53,7 +53,8 @@ class ChatBusiness:
                 model="gpt-4o-mini",
                 input=input_messages,
                 tools=[
-                    {"type": tool.type, "vector_store_ids": tool.index} for tool in tools
+                    {"type": tool.type, "vector_store_ids": tool.index}
+                    for tool in tools
                 ],
             )
 
@@ -69,7 +70,9 @@ class ChatBusiness:
             await self.client_mongo_db.update_document(
                 collection_name=self.CHAT_COLLECTION,
                 query={"id": uuid},
-                update={"$push": {"conversations": chat.conversations[-1].model_dump()}},
+                update={
+                    "$push": {"conversations": chat.conversations[-1].model_dump()}
+                },
             )
 
             return response_message.content
