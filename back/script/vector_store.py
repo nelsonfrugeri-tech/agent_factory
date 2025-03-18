@@ -48,7 +48,7 @@ if __name__ == "__main__":
     while True:
         print("Escolha a operação:")
         print("1 - Retrieve VectorStore e Files")
-        print("2 - Delete Files from VectorStore")
+        print("2 - Delete Files de VectorStore")
         print("0 - Exit")
         choice = input("Digite o número da operação: ")
 

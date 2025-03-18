@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
 from typing import List, Dict, Any
 from src.business.vector_business import VectorBusiness
 from src.port.port import vector_business
