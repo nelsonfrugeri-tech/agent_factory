@@ -1,4 +1,4 @@
-# Agent Fabric
+# Agent Factory
 
 O objetivo deste projeto é criar um "auto-pilot" para desenvolvimento de software, usando como base a sua própria base de conhecimento. Ele integra conceitos de IA, vetores de conhecimento (para busca e armazenamento de arquivos), além de endpoints que expõem funcionalidade de upload, criação de "knowledge bases", e chats inteligentes.
 
